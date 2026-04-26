@@ -31,6 +31,13 @@ describe('generateReport', () => {
     expect(() => JSON.parse(result)).not.toThrow();
   });
 
+  it('should include only active ports when showInactive is false', async () => {
+    const result = await generateReport({ format: 'json', showInactive: false });
+    const parsed = JSON.parse(result);
+    const ports = Array.isArray(parsed) ? parsed : parsed.ports ?? [];
+    expect(ports.every((p: { active: boolean }) => p.active)).toBe(true);
+  });
+
   it('should return guidance message when no ports registered', async () => {
     jest.spyOn(storageModule, 'getStorage').mockResolvedValue(emptyStorage as any);
     const result = await generateReport({ format: 'table' });
@@ -53,5 +60,14 @@ describe('generatePortSummary', () => {
     expect(summary.active).toBe(2);
     expect(summary.inactive).toBe(1);
     expect(summary.labeled).toBe(3);
+  });
+
+  it('should return zero totals for empty storage', async () => {
+    jest.spyOn(storageModule, 'getStorage').mockResolvedValue(emptyStorage as any);
+    const summary = await generatePortSummary();
+    expect(summary.total).toBe(0);
+    expect(summary.active).toBe(0);
+    expect(summary.inactive).toBe(0);
+    expect(summary.labeled).toBe(0);
   });
 });
