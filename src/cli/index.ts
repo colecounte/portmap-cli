@@ -1,36 +1,39 @@
-#!/usr/bin/env node
 import { Command } from 'commander';
-import { scanCommand } from './commands/scan';
+import { registerScanCommand } from './commands/scan';
+import { registerLabelCommand } from './commands/label';
+import { registerReportCommand } from './commands/report';
 
 const program = new Command();
 
 program
   .name('portmap')
-  .description('Scan, label, and persist local port assignments across dev sessions')
+  .description('Lightweight utility to scan, label, and persist local port assignments across dev sessions')
   .version('1.0.0');
 
+registerScanCommand(program);
+registerLabelCommand(program);
+registerReportCommand(program);
+
 program
-  .command('scan')
-  .description('Scan a range of ports for open connections')
-  .requiredOption('-s, --start <number>', 'Start of port range', parseInt)
-  .requiredOption('-e, --end <number>', 'End of port range', parseInt)
-  .option('-f, --format <type>', 'Output format: table | json | csv', 'table')
-  .option('--save', 'Persist open ports to storage', false)
-  .action(async (opts) => {
-    try {
-      await scanCommand({
-        start: opts.start,
-        end: opts.end,
-        format: opts.format,
-        save: opts.save,
-      });
-    } catch (err) {
-      console.error(`Error: ${(err as Error).message}`);
-      process.exit(1);
-    }
+  .command('clear')
+  .description('Clear all stored port data')
+  .action(async () => {
+    const { resetStorage } = await import('../storage/index');
+    await resetStorage();
+    console.log('Port map cleared.');
   });
 
-program.parseAsync(process.argv).catch((err) => {
-  console.error(`Unexpected error: ${err.message}`);
-  process.exit(1);
-});
+program.addHelpText('after', `
+Examples:
+  $ portmap scan --range 3000-4000
+  $ portmap label set 3000 api-server
+  $ portmap label list
+  $ portmap report --format json
+  $ portmap report --open-only --output report.csv --format csv
+`);
+
+export { program };
+
+if (require.main === module) {
+  program.parse(process.argv);
+}
