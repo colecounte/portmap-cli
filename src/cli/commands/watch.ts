@@ -23,7 +23,14 @@ export async function runWatch(
     const labelMap = new Map(entries.map((e) => [e.port, e.label]));
 
     for (const port of ports) {
-      const isOpen = await checkPort(port);
+      let isOpen: boolean;
+      try {
+        isOpen = await checkPort(port);
+      } catch (err) {
+        console.error(`[error] failed to check port ${port}: ${err instanceof Error ? err.message : err}`);
+        continue;
+      }
+
       const wasOpen = previous.get(port);
       const label = labelMap.get(port) ?? '';
       const portDisplay = label ? `${port} (${label})` : `${port}`;
